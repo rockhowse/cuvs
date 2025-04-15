@@ -1444,8 +1444,8 @@ void GNND<Data_t, Index_t>::build(Data_t* data,
 
     // Fill with random nodes if the length of the filled neighbor list is less than the degree.
     for (size_t j = out_j; j < build_config_.node_degree; j++) {
-      size_t rnd = i + 1;
-      size_t idx;
+      uint64_t rnd = static_cast<uint64_t>(i * build_config_.node_degree + j + 1);
+      uint64_t idx;
       bool dup = false;
       do {
         rnd = cuvs::neighbors::cagra::detail::device::xorshift64(rnd);
@@ -1522,6 +1522,12 @@ void build(raft::resources const& res,
 
   auto int_graph = raft::make_host_matrix<int, int64_t, raft::row_major>(
     dataset.extent(0), static_cast<int64_t>(extended_graph_degree));
+
+  RAFT_EXPECTS(static_cast<size_t>(dataset.extent(0) - 1) >= extended_intermediate_degree,
+               "The NN Descent extended intermediate degree (%lu) must be smaller or equal to the "
+               "dataset size (%ld) - 1",
+               extended_intermediate_degree,
+               dataset.extent(0));
 
   BuildConfig build_config{.max_dataset_size      = static_cast<size_t>(dataset.extent(0)),
                            .dataset_dim           = static_cast<size_t>(dataset.extent(1)),
