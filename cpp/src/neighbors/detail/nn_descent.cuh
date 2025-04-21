@@ -1199,6 +1199,8 @@ void GNND<Data_t, Index_t>::build(Data_t* data,
 
   Index_t* graph_shrink_buffer = (Index_t*)graph_.h_dists.data_handle();
 
+  const size_t max_graph_degree =
+    std::min(static_cast<size_t>(nrow_ - 1), static_cast<size_t>(build_config_.node_degree));
   // Copy the output graph while removing duplicates.
 #pragma omp parallel for
   for (size_t i = 0; i < (size_t)nrow_; i++) {
@@ -1207,7 +1209,7 @@ void GNND<Data_t, Index_t>::build(Data_t* data,
     size_t out_j = 0;
 
     // Copy neighbor list while removing duplicates.
-    for (size_t in_j = 0; in_j < build_config_.node_degree; in_j++) {
+    for (size_t in_j = 0; out_j < max_graph_degree && in_j < build_config_.node_degree; in_j++) {
       size_t idx = graph_.h_graph[i * graph_.node_degree + in_j].id();
 
       bool dup = false;
@@ -1224,7 +1226,7 @@ void GNND<Data_t, Index_t>::build(Data_t* data,
     }
 
     // Fill with random nodes if the length of the filled neighbor list is less than the degree.
-    for (size_t j = out_j; j < build_config_.node_degree; j++) {
+    for (size_t j = out_j; j < max_graph_degree; j++) {
       uint64_t rnd = static_cast<uint64_t>(i * build_config_.node_degree + j + 1);
       uint64_t idx;
       bool dup = false;
@@ -1240,6 +1242,12 @@ void GNND<Data_t, Index_t>::build(Data_t* data,
         }
       } while (dup);
       output_neighbor_list_ptr[j] = static_cast<int>(idx);
+    }
+
+    // If the dataset size - 1 is smaller than the degree, fill the neighbor list with the parent
+    // node id
+    for (size_t j = out_j; j < max_graph_degree; j++) {
+      output_neighbor_list_ptr[j] = static_cast<int>(i);
     }
   }
   graph_.h_graph = nullptr;
