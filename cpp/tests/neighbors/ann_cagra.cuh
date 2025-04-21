@@ -342,8 +342,6 @@ class AnnCagraTest : public ::testing::TestWithParam<AnnCagraInputs> {
     if (ps.metric == cuvs::distance::DistanceType::BitwiseHamming &&
         (ps.k * ps.dim * 8 / 5 /*(=magic number)*/ < ps.n_rows))
       GTEST_SKIP();
-    // Dataset size must be larger than 33 for NN Descent
-    if (ps.build_algo == graph_build_algo::NN_DESCENT && (ps.n_rows < 33)) GTEST_SKIP();
 
     size_t queries_size = ps.n_queries * ps.k;
     std::vector<SearchIdxT> indices_Cagra(queries_size);
@@ -538,8 +536,6 @@ class AnnCagraAddNodesTest : public ::testing::TestWithParam<AnnCagraInputs> {
     if (ps.metric == cuvs::distance::DistanceType::BitwiseHamming &&
         (ps.k * ps.dim * 8 / 5 /*(=magic number)*/ < ps.n_rows))
       GTEST_SKIP();
-    // Dataset size must be larger than 33 for NN Descent
-    if (ps.build_algo == graph_build_algo::NN_DESCENT && (ps.n_rows < 33)) GTEST_SKIP();
 
     size_t queries_size = ps.n_queries * ps.k;
     std::vector<IdxT> indices_Cagra(queries_size);
@@ -753,8 +749,6 @@ class AnnCagraFilterTest : public ::testing::TestWithParam<AnnCagraInputs> {
     if (ps.metric == cuvs::distance::DistanceType::BitwiseHamming &&
         (ps.k * ps.dim * 8 / 5 /*(=magic number)*/ < ps.n_rows))
       GTEST_SKIP();
-    // Dataset size must be larger than 33 for NN Descent
-    if (ps.build_algo == graph_build_algo::NN_DESCENT && (ps.n_rows < 33)) GTEST_SKIP();
 
     size_t queries_size = ps.n_queries * ps.k;
     std::vector<IdxT> indices_Cagra(queries_size);
@@ -968,8 +962,6 @@ class AnnCagraIndexMergeTest : public ::testing::TestWithParam<AnnCagraInputs> {
     if (ps.metric == cuvs::distance::DistanceType::BitwiseHamming &&
         (ps.k * ps.dim * 8 / 5 /*(=magic number)*/ < ps.n_rows))
       GTEST_SKIP();
-    // Dataset size must be larger than 33 for NN Descent
-    if (ps.build_algo == graph_build_algo::NN_DESCENT && (ps.n_rows < 33)) GTEST_SKIP();
 
     // Avoid splitting datasets with a size of 0
     if (ps.n_rows <= 3) GTEST_SKIP();
