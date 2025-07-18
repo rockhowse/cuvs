@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, NVIDIA CORPORATION.
+ * Copyright (c) 2024-2025, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#include <cstdint>
 #include <cuvs/core/c_api.h>
 #include <cuvs/core/exceptions.hpp>
-#include <memory>
+#include <cuvs/version_config.h>
+
 #include <raft/core/resource/cuda_stream.hpp>
 #include <raft/core/resources.hpp>
 #include <rmm/cuda_stream_view.hpp>
@@ -27,6 +27,9 @@
 #include <rmm/mr/device/per_device_resource.hpp>
 #include <rmm/mr/device/pool_memory_resource.hpp>
 #include <rmm/mr/host/pinned_memory_resource.hpp>
+
+#include <cstdint>
+#include <memory>
 #include <thread>
 
 extern "C" cuvsError_t cuvsResourcesCreate(cuvsResources_t* res)
@@ -154,3 +157,11 @@ extern "C" const char* cuvsGetLastErrorText()
 }
 
 extern "C" void cuvsSetLastErrorText(const char* error) { last_error_text = error ? error : ""; }
+
+extern "C" cuvsError_t cuvsVersionGet(uint16_t* major, uint16_t* minor, uint16_t* patch)
+{
+  *major = CUVS_VERSION_MAJOR;
+  *minor = CUVS_VERSION_MINOR;
+  *patch = CUVS_VERSION_PATCH;
+  return CUVS_SUCCESS;
+}

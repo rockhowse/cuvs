@@ -43,27 +43,21 @@ C/C++ Package
 
 .. code-block:: bash
 
-   conda install -c rapidsai -c conda-forge -c nvidia libcuvs cuda-version=12.8
+   conda install -c rapidsai -c conda-forge libcuvs cuda-version=12.9
 
 Python Package
 ~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-   conda install -c rapidsai -c conda-forge -c nvidia cuvs cuda-version=12.8
+   conda install -c rapidsai -c conda-forge cuvs cuda-version=12.9
 
 Python through Pip
 ^^^^^^^^^^^^^^^^^^
 
 The cuVS Python package can also be `installed through pip <https://docs.rapids.ai/install#pip>`_.
 
-For CUDA 11 packages:
-
-.. code-block:: bash
-
-    pip install cuvs-cu11 --extra-index-url=https://pypi.nvidia.com
-
-And CUDA 12 packages:
+For CUDA 12 packages:
 
 .. code-block:: bash
 
@@ -164,6 +158,21 @@ The Python packages can also be uninstalled using the `build.sh` script:
 .. code-block:: bash
 
     ./build.sh python --uninstall
+
+Go library
+^^^^^^^^^^
+
+After building the C and C++ libraries, the Golang library can be built with the following command:
+
+.. code-block:: bash
+
+    export CUDA_HOME="/usr/local/cuda" # or wherever your CUDA installation is.
+    export CGO_CFLAGS="-I${CONDA_PREFIX}/include -I${CUDA_HOME}/include"
+    export CGO_LDFLAGS="-L${CONDA_PREFIX}/lib -lcudart -lcuvs -lcuvs_c"
+    export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+    export CC=clang
+
+    ./build.sh go
 
 Rust library
 ^^^^^^^^^^^^

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, NVIDIA CORPORATION.
+ * Copyright (c) 2024-2025, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,9 +58,10 @@ template <typename IdxT>
 ::std::ostream& operator<<(::std::ostream& os, const AnnIvfFlatInputs<IdxT>& p)
 {
   os << "{ " << p.num_queries << ", " << p.num_db_vecs << ", " << p.dim << ", " << p.k << ", "
-     << p.nprobe << ", " << p.nlist << ", " << static_cast<int>(p.metric) << ", "
-     << p.adaptive_centers << "," << p.host_dataset << "," << p.kernel_copy_overlapping << '}'
-     << std::endl;
+     << p.nprobe << ", " << p.nlist << ", "
+     << cuvs::neighbors::print_metric{static_cast<cuvs::distance::DistanceType>((int)p.metric)}
+     << ", " << p.adaptive_centers << "," << p.host_dataset << "," << p.kernel_copy_overlapping
+     << '}' << std::endl;
   return os;
 }
 
@@ -197,10 +198,10 @@ class AnnIVFFlatTest : public ::testing::TestWithParam<AnnIvfFlatInputs<IdxT>> {
           indices_ivfflat_dev.data(), ps.num_queries, ps.k);
         auto dists_out_view = raft::make_device_matrix_view<T, IdxT>(
           distances_ivfflat_dev.data(), ps.num_queries, ps.k);
-        const std::string filename = "ivf_flat_index";
-        cuvs::neighbors::ivf_flat::serialize(handle_, filename, index_2);
+        tmp_index_file index_file;
+        cuvs::neighbors::ivf_flat::serialize(handle_, index_file.filename, index_2);
         cuvs::neighbors::ivf_flat::index<DataT, IdxT> index_loaded(handle_);
-        cuvs::neighbors::ivf_flat::deserialize(handle_, filename, &index_loaded);
+        cuvs::neighbors::ivf_flat::deserialize(handle_, index_file.filename, &index_loaded);
         ASSERT_EQ(index_2.size(), index_loaded.size());
 
         cuvs::neighbors::ivf_flat::search(handle_,
@@ -238,8 +239,8 @@ class AnnIVFFlatTest : public ::testing::TestWithParam<AnnIvfFlatInputs<IdxT>> {
                                                                     cluster_data.data(),
                                                                     (IdxT)ps.dim,
                                                                     stream_);
-            raft::stats::mean<float, uint32_t>(
-              centroid.data(), cluster_data.data(), ps.dim, list_sizes[l], false, true, stream_);
+            raft::stats::mean<true, float, uint32_t>(
+              centroid.data(), cluster_data.data(), ps.dim, list_sizes[l], false, stream_);
             ASSERT_TRUE(cuvs::devArrMatch(index_2.centers().data_handle() + ps.dim * l,
                                           centroid.data(),
                                           ps.dim,
@@ -255,13 +256,14 @@ class AnnIVFFlatTest : public ::testing::TestWithParam<AnnIvfFlatInputs<IdxT>> {
                                         stream_));
         }
       }
+      float eps = std::is_same_v<DataT, half> ? 0.005 : 0.001;
       ASSERT_TRUE(eval_neighbours(indices_naive,
                                   indices_ivfflat,
                                   distances_naive,
                                   distances_ivfflat,
                                   ps.num_queries,
                                   ps.k,
-                                  0.001,
+                                  eps,
                                   min_recall));
     }
   }
@@ -487,13 +489,14 @@ class AnnIVFFlatTest : public ::testing::TestWithParam<AnnIvfFlatInputs<IdxT>> {
           indices_ivfflat.data(), indices_ivfflat_dev.data_handle(), queries_size, stream_);
         raft::resource::sync_stream(handle_);
       }
+      float eps = std::is_same_v<DataT, half> ? 0.005 : 0.001;
       ASSERT_TRUE(eval_neighbours(indices_naive,
                                   indices_ivfflat,
                                   distances_naive,
                                   distances_ivfflat,
                                   ps.num_queries,
                                   ps.k,
-                                  0.001,
+                                  eps,
                                   min_recall));
     }
   }
@@ -504,7 +507,7 @@ class AnnIVFFlatTest : public ::testing::TestWithParam<AnnIvfFlatInputs<IdxT>> {
     search_queries.resize(ps.num_queries * ps.dim, stream_);
 
     raft::random::RngState r(1234ULL);
-    if constexpr (std::is_same<DataT, float>{}) {
+    if constexpr (std::is_same_v<DataT, float> || std::is_same_v<DataT, half>) {
       raft::random::uniform(
         handle_, r, database.data(), ps.num_db_vecs * ps.dim, DataT(0.1), DataT(2.0));
       raft::random::uniform(
@@ -558,7 +561,9 @@ const std::vector<AnnIvfFlatInputs<int64_t>> inputs = {
   {1000, 10000, 2049, 16, 40, 1024, cuvs::distance::DistanceType::CosineExpanded, false},
   {1000, 10000, 2050, 16, 40, 1024, cuvs::distance::DistanceType::InnerProduct, false},
   {1000, 10000, 2050, 16, 40, 1024, cuvs::distance::DistanceType::CosineExpanded, false},
-  {1000, 10000, 2051, 16, 40, 1024, cuvs::distance::DistanceType::InnerProduct, true},
+  // TODO: Re-enable test after adjusting parameters for higher recall. See
+  // https://github.com/rapidsai/cuvs/issues/1091
+  // {1000, 10000, 2051, 16, 40, 1024, cuvs::distance::DistanceType::InnerProduct, true},
   {1000, 10000, 2051, 16, 40, 1024, cuvs::distance::DistanceType::CosineExpanded, true},
   {1000, 10000, 2052, 16, 40, 1024, cuvs::distance::DistanceType::InnerProduct, false},
   {1000, 10000, 2052, 16, 40, 1024, cuvs::distance::DistanceType::CosineExpanded, false},

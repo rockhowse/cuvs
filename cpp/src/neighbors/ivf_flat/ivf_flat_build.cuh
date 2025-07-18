@@ -340,43 +340,32 @@ void extend(raft::resources const& handle,
     index->allocate_center_norms(handle);
     if (index->center_norms().has_value()) {
       if (index->metric() == cuvs::distance::DistanceType::CosineExpanded) {
-        raft::linalg::rowNorm(index->center_norms()->data_handle(),
-                              index->centers().data_handle(),
-                              dim,
-                              n_lists,
-                              raft::linalg::L2Norm,
-                              true,
-                              stream,
-                              raft::sqrt_op{});
+        raft::linalg::rowNorm<raft::linalg::L2Norm, true>(index->center_norms()->data_handle(),
+                                                          index->centers().data_handle(),
+                                                          dim,
+                                                          n_lists,
+                                                          stream,
+                                                          raft::sqrt_op{});
       } else {
-        raft::linalg::rowNorm(index->center_norms()->data_handle(),
-                              index->centers().data_handle(),
-                              dim,
-                              n_lists,
-                              raft::linalg::L2Norm,
-                              true,
-                              stream);
+        raft::linalg::rowNorm<raft::linalg::L2Norm, true>(index->center_norms()->data_handle(),
+                                                          index->centers().data_handle(),
+                                                          dim,
+                                                          n_lists,
+                                                          stream);
       }
       RAFT_LOG_TRACE_VEC(index->center_norms()->data_handle(), std::min<uint32_t>(dim, 20));
     }
   } else if (index->center_norms().has_value() && index->adaptive_centers()) {
     if (index->metric() == cuvs::distance::DistanceType::CosineExpanded) {
-      raft::linalg::rowNorm(index->center_norms()->data_handle(),
-                            index->centers().data_handle(),
-                            dim,
-                            n_lists,
-                            raft::linalg::L2Norm,
-                            true,
-                            stream,
-                            raft::sqrt_op{});
+      raft::linalg::rowNorm<raft::linalg::L2Norm, true>(index->center_norms()->data_handle(),
+                                                        index->centers().data_handle(),
+                                                        dim,
+                                                        n_lists,
+                                                        stream,
+                                                        raft::sqrt_op{});
     } else {
-      raft::linalg::rowNorm(index->center_norms()->data_handle(),
-                            index->centers().data_handle(),
-                            dim,
-                            n_lists,
-                            raft::linalg::L2Norm,
-                            true,
-                            stream);
+      raft::linalg::rowNorm<raft::linalg::L2Norm, true>(
+        index->center_norms()->data_handle(), index->centers().data_handle(), dim, n_lists, stream);
     }
     RAFT_LOG_TRACE_VEC(index->center_norms()->data_handle(), std::min<uint32_t>(dim, 20));
   }
@@ -406,7 +395,8 @@ inline auto build(raft::resources const& handle,
   auto stream = raft::resource::get_cuda_stream(handle);
   cuvs::common::nvtx::range<cuvs::common::nvtx::domain::cuvs> fun_scope(
     "ivf_flat::build(%zu, %u)", size_t(n_rows), dim);
-  static_assert(std::is_same_v<T, float> || std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t>,
+  static_assert(std::is_same_v<T, float> || std::is_same_v<T, half> || std::is_same_v<T, uint8_t> ||
+                  std::is_same_v<T, int8_t>,
                 "unsupported data type");
   RAFT_EXPECTS(n_rows > 0 && dim > 0, "empty dataset");
   RAFT_EXPECTS(n_rows >= params.n_lists, "number of rows can't be less than n_lists");

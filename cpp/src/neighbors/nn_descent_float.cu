@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, NVIDIA CORPORATION.
+ * Copyright (c) 2024-2025, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "./detail/nn_descent_gnnd.hpp"
+#include "./detail/reachability.cuh"
 #include "nn_descent.cuh"
 #include <cuvs/neighbors/nn_descent.hpp>
 
@@ -24,7 +26,7 @@ namespace cuvs::neighbors::nn_descent {
              const cuvs::neighbors::nn_descent::index_params& params,                         \
              raft::device_matrix_view<const T, int64_t, raft::row_major> dataset,             \
              std::optional<raft::host_matrix_view<uint32_t, int64_t, raft::row_major>> graph) \
-    ->cuvs::neighbors::nn_descent::index<IdxT>                                                \
+    -> cuvs::neighbors::nn_descent::index<IdxT>                                               \
   {                                                                                           \
     if (!graph.has_value()) {                                                                 \
       return cuvs::neighbors::nn_descent::build<T, IdxT>(handle, params, dataset);            \
@@ -41,7 +43,7 @@ namespace cuvs::neighbors::nn_descent {
              const cuvs::neighbors::nn_descent::index_params& params,                         \
              raft::host_matrix_view<const T, int64_t, raft::row_major> dataset,               \
              std::optional<raft::host_matrix_view<uint32_t, int64_t, raft::row_major>> graph) \
-    ->cuvs::neighbors::nn_descent::index<IdxT>                                                \
+    -> cuvs::neighbors::nn_descent::index<IdxT>                                               \
   {                                                                                           \
     if (!graph.has_value()) {                                                                 \
       return cuvs::neighbors::nn_descent::build<T, IdxT>(handle, params, dataset);            \
@@ -54,7 +56,30 @@ namespace cuvs::neighbors::nn_descent {
       return idx;                                                                             \
     }                                                                                         \
   };                                                                                          \
-  template class detail::GNND<const T, int>;
+  template class detail::GNND<const T, int>;                                                  \
+                                                                                              \
+  template void detail::GNND<const T, int>::build<                                            \
+    cuvs::neighbors::detail::reachability::ReachabilityPostProcess<int, T>>(                  \
+    const T* data,                                                                            \
+    const int nrow,                                                                           \
+    int* output_graph,                                                                        \
+    bool return_distances,                                                                    \
+    float* output_distances,                                                                  \
+    cuvs::neighbors::detail::reachability::ReachabilityPostProcess<int, T> dist_epilogue);    \
+  template void detail::GNND<const T, int>::local_join<                                       \
+    cuvs::neighbors::detail::reachability::ReachabilityPostProcess<int, T>>(                  \
+    cudaStream_t stream,                                                                      \
+    cuvs::neighbors::detail::reachability::ReachabilityPostProcess<int, T> dist_epilogue);    \
+                                                                                              \
+  template void detail::GNND<const T, int>::build<raft::identity_op>(                         \
+    const T* data,                                                                            \
+    const int nrow,                                                                           \
+    int* output_graph,                                                                        \
+    bool return_distances,                                                                    \
+    float* output_distances,                                                                  \
+    raft::identity_op dist_epilogue);                                                         \
+  template void detail::GNND<const T, int>::local_join<raft::identity_op>(                    \
+    cudaStream_t stream, raft::identity_op dist_epilogue);
 
 CUVS_INST_NN_DESCENT_BUILD(float, uint32_t);
 

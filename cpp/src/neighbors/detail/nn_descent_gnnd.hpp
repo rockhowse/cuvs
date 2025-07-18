@@ -207,11 +207,13 @@ class GNND {
   GNND(const GNND&)            = delete;
   GNND& operator=(const GNND&) = delete;
 
+  template <typename DistEpilogue_t = raft::identity_op>
   void build(Data_t* data,
              const Index_t nrow,
              Index_t* output_graph,
              bool return_distances,
-             DistData_t* output_distances);
+             DistData_t* output_distances,
+             DistEpilogue_t dist_epilogue = DistEpilogue_t{});
   ~GNND()    = default;
   using ID_t = InternalID_t<Index_t>;
   void reset(raft::resources const& res);
@@ -222,7 +224,9 @@ class GNND {
                          Index_t* d_rev_graph_ptr,
                          int2* list_sizes,
                          cudaStream_t stream = 0);
-  void local_join(cudaStream_t stream = 0);
+
+  template <typename DistEpilogue_t = raft::identity_op>
+  void local_join(cudaStream_t stream = 0, DistEpilogue_t dist_epilogue = DistEpilogue_t{});
 
   raft::resources const& res;
 
@@ -253,19 +257,15 @@ class GNND {
   raft::device_vector<int2, size_t> d_list_sizes_old_;
 };
 
-template <typename T,
-          typename IdxT     = uint32_t,
-          typename Accessor = raft::host_device_accessor<std::experimental::default_accessor<T>,
-                                                         raft::memory_type::host>>
-BuildConfig get_build_config(
-  raft::resources const& res,
-  const index_params& params,
-  raft::mdspan<const T, raft::matrix_extent<int64_t>, raft::row_major, Accessor> dataset,
-  const cuvs::distance::DistanceType metric,
-  size_t& extended_graph_degree,
-  size_t& graph_degree)
+inline BuildConfig get_build_config(raft::resources const& res,
+                                    const index_params& params,
+                                    size_t num_rows,
+                                    size_t num_cols,
+                                    const cuvs::distance::DistanceType metric,
+                                    size_t& extended_graph_degree,
+                                    size_t& graph_degree)
 {
-  RAFT_EXPECTS(dataset.extent(0) < std::numeric_limits<int>::max() - 1,
+  RAFT_EXPECTS(num_rows < std::numeric_limits<int>::max() - 1,
                "The dataset size for GNND should be less than %d",
                std::numeric_limits<int>::max() - 1);
   auto allowed_metrics = params.metric == cuvs::distance::DistanceType::L2Expanded ||
@@ -281,11 +281,12 @@ BuildConfig get_build_config(
   size_t intermediate_degree = params.intermediate_graph_degree;
   graph_degree               = params.graph_degree;
 
-  if (intermediate_degree >= static_cast<size_t>(dataset.extent(0))) {
+  if (intermediate_degree >= num_rows) {
     RAFT_LOG_WARN(
-      "Intermediate graph degree cannot be larger than dataset size, reducing it to %lu",
-      dataset.extent(0));
-    intermediate_degree = dataset.extent(0) - 1;
+      "Intermediate graph degree cannot be larger than number of rows in dataset, reducing it to "
+      "%lu",
+      num_rows - 1);
+    intermediate_degree = num_rows - 1;
   }
   if (intermediate_degree < graph_degree) {
     RAFT_LOG_WARN(
@@ -304,8 +305,8 @@ BuildConfig get_build_config(
   size_t extended_intermediate_degree =
     roundUp32(static_cast<size_t>(intermediate_degree * (intermediate_degree <= 32 ? 1.0 : 1.3)));
 
-  BuildConfig build_config{.max_dataset_size      = static_cast<size_t>(dataset.extent(0)),
-                           .dataset_dim           = static_cast<size_t>(dataset.extent(1)),
+  BuildConfig build_config{.max_dataset_size      = num_rows,
+                           .dataset_dim           = num_cols,
                            .node_degree           = extended_graph_degree,
                            .internal_node_degree  = extended_intermediate_degree,
                            .max_iterations        = params.max_iterations,

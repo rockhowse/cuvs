@@ -1,5 +1,5 @@
 # =============================================================================
-# Copyright (c) 2020-2024, NVIDIA CORPORATION.
+# Copyright (c) 2020-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -37,7 +37,7 @@ project(
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
 # Write the version header
-rapids_cmake_write_version_file(include/cuvs/version_config.hpp)
+rapids_cmake_write_version_file(include/cuvs/version_config.h)
 
 # ##################################################################################################
 # * build type ---------------------------------------------------------------
@@ -306,13 +306,13 @@ if(BUILD_SHARED_LIBS)
         src/neighbors/mg/mg_cagra_int8_t_uint32_t.cu
         src/neighbors/mg/mg_cagra_uint8_t_uint32_t.cu
         src/neighbors/mg/omp_checks.cpp
-        src/neighbors/mg/nccl_comm.cpp
     )
   endif()
 
   add_library(
     cuvs_objs OBJECT
     src/cluster/kmeans_balanced_fit_float.cu
+    src/cluster/kmeans_cluster_cost.cu
     src/cluster/kmeans_fit_mg_float.cu
     src/cluster/kmeans_fit_mg_double.cu
     src/cluster/kmeans_fit_double.cu
@@ -382,6 +382,11 @@ if(BUILD_SHARED_LIBS)
     src/distance/pairwise_distance.cu
     src/distance/sparse_distance.cu
     src/embed/spectral.cu
+    src/neighbors/all_neighbors/all_neighbors.cu
+    src/neighbors/ball_cover.cu
+    src/neighbors/ball_cover/detail/ball_cover/registers_eps_pass_euclidean.cu
+    src/neighbors/ball_cover/detail/ball_cover/registers_pass_one.cu
+    src/neighbors/ball_cover/detail/ball_cover/registers_pass_two.cu
     src/neighbors/brute_force.cu
     src/neighbors/brute_force_serialize.cu
     src/neighbors/cagra_build_float.cu
@@ -411,22 +416,27 @@ if(BUILD_SHARED_LIBS)
     src/neighbors/iface/iface_pq_half_int64_t.cu
     src/neighbors/iface/iface_pq_int8_t_int64_t.cu
     src/neighbors/iface/iface_pq_uint8_t_int64_t.cu
-    src/neighbors/detail/cagra/cagra_build.cpp
     src/neighbors/detail/cagra/topk_for_cagra/topk.cu
     src/neighbors/dynamic_batching.cu
+    src/neighbors/cagra_index_wrapper.cu
+    src/neighbors/composite/index.cu
+    src/neighbors/composite/merge.cpp
     $<$<BOOL:${BUILD_CAGRA_HNSWLIB}>:src/neighbors/hnsw.cpp>
     src/neighbors/ivf_flat_index.cpp
     src/neighbors/ivf_flat/ivf_flat_build_extend_float_int64_t.cu
+    src/neighbors/ivf_flat/ivf_flat_build_extend_half_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_build_extend_int8_t_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_build_extend_uint8_t_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_helpers.cu
     src/neighbors/ivf_flat/ivf_flat_search_float_int64_t.cu
+    src/neighbors/ivf_flat/ivf_flat_search_half_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_search_int8_t_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_search_uint8_t_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_serialize_float_int64_t.cu
+    src/neighbors/ivf_flat/ivf_flat_serialize_half_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_serialize_int8_t_int64_t.cu
     src/neighbors/ivf_flat/ivf_flat_serialize_uint8_t_int64_t.cu
-    src/neighbors/ivf_pq_index.cpp
+    src/neighbors/ivf_pq_index.cu
     src/neighbors/ivf_pq/ivf_pq_build_common.cu
     src/neighbors/ivf_pq/ivf_pq_serialize.cu
     src/neighbors/ivf_pq/ivf_pq_deserialize.cu
@@ -452,6 +462,7 @@ if(BUILD_SHARED_LIBS)
     src/neighbors/ivf_pq/detail/ivf_pq_search_half_int64_t.cu
     src/neighbors/ivf_pq/detail/ivf_pq_search_int8_t_int64_t.cu
     src/neighbors/ivf_pq/detail/ivf_pq_search_uint8_t_int64_t.cu
+    src/neighbors/knn_merge_parts.cu
     src/neighbors/nn_descent.cu
     src/neighbors/nn_descent_float.cu
     src/neighbors/nn_descent_half.cu
@@ -468,10 +479,12 @@ if(BUILD_SHARED_LIBS)
     src/neighbors/refine/detail/refine_host_int8_t_float.cpp
     src/neighbors/refine/detail/refine_host_uint8_t_float.cpp
     src/neighbors/sample_filter.cu
+    src/neighbors/tiered_index.cu
     src/neighbors/sparse_brute_force.cu
     src/neighbors/vamana_build_float.cu
     src/neighbors/vamana_build_uint8.cu
     src/neighbors/vamana_build_int8.cu
+    src/neighbors/vamana_codebooks_float.cu
     src/neighbors/vamana_serialize_float.cu
     src/neighbors/vamana_serialize_uint8.cu
     src/neighbors/vamana_serialize_int8.cu
@@ -609,6 +622,7 @@ if(BUILD_SHARED_LIBS)
   if(BUILD_MG_ALGOS)
     target_compile_definitions(cuvs PUBLIC CUVS_BUILD_MG_ALGOS)
     target_compile_definitions(cuvs_objs PUBLIC CUVS_BUILD_MG_ALGOS)
+    target_compile_definitions(cuvs-cagra-search PUBLIC CUVS_BUILD_MG_ALGOS)
   endif()
 
   if(BUILD_CAGRA_HNSWLIB)
@@ -696,6 +710,7 @@ target_compile_definitions(cuvs::cuvs INTERFACE $<$<BOOL:${CUVS_NVTX}>:NVTX_ENAB
     add_library(
       cuvs_c SHARED
       src/core/c_api.cpp
+      src/cluster/kmeans_c.cpp
       src/neighbors/brute_force_c.cpp
       src/neighbors/ivf_flat_c.cpp
       src/neighbors/ivf_pq_c.cpp
@@ -703,6 +718,7 @@ target_compile_definitions(cuvs::cuvs INTERFACE $<$<BOOL:${CUVS_NVTX}>:NVTX_ENAB
       $<$<BOOL:${BUILD_CAGRA_HNSWLIB}>:src/neighbors/hnsw_c.cpp>
       src/neighbors/nn_descent_c.cpp
       src/neighbors/refine/refine_c.cpp
+      src/neighbors/tiered_index_c.cpp
       src/preprocessing/quantize/binary_c.cpp
       src/preprocessing/quantize/scalar_c.cpp
       src/distance/pairwise_distance_c.cpp
@@ -731,6 +747,7 @@ target_compile_definitions(cuvs::cuvs INTERFACE $<$<BOOL:${CUVS_NVTX}>:NVTX_ENAB
     target_include_directories(
       cuvs_c
       PUBLIC "$<BUILD_INTERFACE:${DLPACK_INCLUDE_DIR}>"
+             "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
       INTERFACE "$<INSTALL_INTERFACE:include>"
     )
 
@@ -778,7 +795,7 @@ target_compile_definitions(cuvs::cuvs INTERFACE $<$<BOOL:${CUVS_NVTX}>:NVTX_ENAB
   endif()
 
   install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/include/cuvs/version_config.hpp
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/include/cuvs/version_config.h
     COMPONENT cuvs
     DESTINATION include/cuvs
   )

@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.nvidia.cuvs;
 
 import com.nvidia.cuvs.spi.CuVSProvider;
-
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  *
@@ -57,6 +54,7 @@ public interface BruteForceIndex {
    *                     bytes into
    */
   void serialize(OutputStream outputStream) throws Throwable;
+
   /**
    * A method to persist a BRUTEFORCE index using an instance of
    * {@link OutputStream} and path to the intermediate temporary file.
@@ -103,12 +101,20 @@ public interface BruteForceIndex {
     Builder from(InputStream inputStream);
 
     /**
-     * Sets the dataset for building the {@link BruteForceIndex}.
+     * Sets the dataset vectors for building the {@link BruteForceIndex}.
      *
-     * @param dataset a two-dimensional float array
+     * @param vectors a two-dimensional float array
      * @return an instance of this Builder
      */
-    Builder withDataset(float[][] dataset);
+    Builder withDataset(float[][] vectors);
+
+    /**
+     * Sets the dataset for building the {@link BruteForceIndex}.
+     *
+     * @param dataset a {@link Dataset} object containing the vectors
+     * @return an instance of this Builder
+     */
+    Builder withDataset(Dataset dataset);
 
     /**
      * Builds and returns an instance of {@link BruteForceIndex}.

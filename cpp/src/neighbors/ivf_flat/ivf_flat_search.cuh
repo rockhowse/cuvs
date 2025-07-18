@@ -84,10 +84,10 @@ void search_impl(raft::resources const& handle,
     distance_buffer_dev.data(), n_queries, index.n_lists());
 
   size_t float_query_size;
-  if constexpr (std::is_integral_v<T>) {
-    float_query_size = n_queries * index.dim();
-  } else {
+  if constexpr (std::is_same_v<T, float>) {
     float_query_size = 0;
+  } else {
+    float_query_size = n_queries * index.dim();
   }
   rmm::device_uvector<float> converted_queries_dev(float_query_size, stream, search_mr);
   float* converted_queries_ptr = converted_queries_dev.data();
@@ -108,13 +108,11 @@ void search_impl(raft::resources const& handle,
     case cuvs::distance::DistanceType::L2SqrtExpanded: {
       alpha = -2.0f;
       beta  = 1.0f;
-      raft::linalg::rowNorm(query_norm_dev.data(),
-                            converted_queries_ptr,
-                            static_cast<IdxT>(index.dim()),
-                            static_cast<IdxT>(n_queries),
-                            raft::linalg::L2Norm,
-                            true,
-                            stream);
+      raft::linalg::rowNorm<raft::linalg::L2Norm, true>(query_norm_dev.data(),
+                                                        converted_queries_ptr,
+                                                        static_cast<IdxT>(index.dim()),
+                                                        static_cast<IdxT>(n_queries),
+                                                        stream);
       utils::outer_add(query_norm_dev.data(),
                        (IdxT)n_queries,
                        index.center_norms()->data_handle(),
@@ -126,14 +124,12 @@ void search_impl(raft::resources const& handle,
       break;
     }
     case cuvs::distance::DistanceType::CosineExpanded: {
-      raft::linalg::rowNorm(query_norm_dev.data(),
-                            converted_queries_ptr,
-                            static_cast<IdxT>(index.dim()),
-                            static_cast<IdxT>(n_queries),
-                            raft::linalg::L2Norm,
-                            true,
-                            stream,
-                            raft::sqrt_op{});
+      raft::linalg::rowNorm<raft::linalg::L2Norm, true>(query_norm_dev.data(),
+                                                        converted_queries_ptr,
+                                                        static_cast<IdxT>(index.dim()),
+                                                        static_cast<IdxT>(n_queries),
+                                                        stream,
+                                                        raft::sqrt_op{});
       alpha = -1.0f;
       beta  = 0.0f;
       break;
