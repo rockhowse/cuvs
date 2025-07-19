@@ -460,7 +460,7 @@ class AnnCagraTest : public ::testing::TestWithParam<AnnCagraInputs> {
       //   print_vector("C", distances_Cagra.data() + i * ps.k, ps.k, std::cout);
       // }
       double min_recall = ps.min_recall;
-      if (ps.graph_degree < 40) { min_recall *= 0.9; }
+      if (ps.graph_degree < 50) { min_recall *= 0.9; }
       EXPECT_TRUE(eval_neighbours(indices_naive,
                                   indices_Cagra,
                                   distances_naive,
@@ -677,7 +677,7 @@ class AnnCagraAddNodesTest : public ::testing::TestWithParam<AnnCagraInputs> {
       }
 
       double min_recall = ps.min_recall;
-      if (ps.graph_degree < 40) { min_recall *= 0.95; }
+      if (ps.graph_degree < 50) { min_recall *= 0.95; }
       EXPECT_TRUE(eval_neighbours(indices_naive,
                                   indices_Cagra,
                                   distances_naive,
@@ -884,7 +884,7 @@ class AnnCagraFilterTest : public ::testing::TestWithParam<AnnCagraInputs> {
       EXPECT_FALSE(unacceptable_node);
 
       double min_recall = ps.min_recall;
-      if (ps.graph_degree < 40) { min_recall *= 0.9; }
+      if (ps.graph_degree < 50) { min_recall *= 0.9; }
       // TODO(mfoerster): re-enable uniquenes test
       EXPECT_TRUE(eval_neighbours(indices_naive,
                                   indices_Cagra,
@@ -1102,7 +1102,7 @@ class AnnCagraIndexMergeTest : public ::testing::TestWithParam<AnnCagraInputs> {
       }
 
       double min_recall = ps.min_recall;
-      if (ps.graph_degree < 40) { min_recall *= 0.9; }
+      if (ps.graph_degree < 50) { min_recall *= 0.9; }
       EXPECT_TRUE(eval_neighbours(indices_naive,
                                   indices_Cagra,
                                   distances_naive,
