@@ -33,12 +33,13 @@ import java.util.Objects;
  *
  * @since 25.02
  */
-public interface CagraIndex {
+public interface CagraIndex extends AutoCloseable {
 
   /**
    * Invokes the native destroy_cagra_index to de-allocate the CAGRA index
    */
-  void destroyIndex() throws Throwable;
+  @Override
+  void close() throws Exception;
 
   /**
    * Invokes the native search_cagra_index via the Panama API for searching a
@@ -49,6 +50,13 @@ public interface CagraIndex {
    * @return an instance of {@link SearchResults} containing the results
    */
   SearchResults search(CagraQuery query) throws Throwable;
+
+  /** Returns the CAGRA graph
+   *
+   * @return a {@link CuVSDeviceMatrix} encapsulating the native int (uint32_t) array used to represent
+   * the cagra graph
+   */
+  CuVSDeviceMatrix getGraph();
 
   /**
    * A method to persist a CAGRA index using an instance of {@link OutputStream}
@@ -209,6 +217,12 @@ public interface CagraIndex {
     Builder from(InputStream inputStream);
 
     /**
+     * Sets a CAGRA graph instance to re-create an index from a
+     * previously built graph.
+     */
+    Builder from(CuVSMatrix graph);
+
+    /**
      * Sets the dataset vectors for building the {@link CagraIndex}.
      *
      * @param vectors a two-dimensional float array
@@ -219,10 +233,10 @@ public interface CagraIndex {
     /**
      * Sets the dataset for building the {@link CagraIndex}.
      *
-     * @param dataset a {@link Dataset} object containing the vectors
+     * @param dataset a {@link CuVSMatrix} object containing the vectors
      * @return an instance of this Builder
      */
-    Builder withDataset(Dataset dataset);
+    Builder withDataset(CuVSMatrix dataset);
 
     /**
      * Registers an instance of configured {@link CagraIndexParams} with this

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include <dlpack/dlpack.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -75,6 +76,23 @@ cuvsError_t cuvsResourcesCreate(cuvsResources_t* res);
 cuvsError_t cuvsResourcesDestroy(cuvsResources_t res);
 
 /**
+ * @brief Create an Initialized opaque C handle for C++ type `raft::device_resources_snmg`
+ *        for multi-GPU operations
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @return cuvsError_t
+ */
+cuvsError_t cuvsMultiGpuResourcesCreate(cuvsResources_t* res);
+
+/**
+ * @brief Destroy and de-allocate opaque C handle for C++ type `raft::device_resources_snmg`
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @return cuvsError_t
+ */
+cuvsError_t cuvsMultiGpuResourcesDestroy(cuvsResources_t res);
+
+/**
  * @brief Set cudaStream_t on cuvsResources_t to queue CUDA kernels on APIs
  *        that accept a cuvsResources_t handle
  *
@@ -85,7 +103,7 @@ cuvsError_t cuvsResourcesDestroy(cuvsResources_t res);
 cuvsError_t cuvsStreamSet(cuvsResources_t res, cudaStream_t stream);
 
 /**
- * @brief Get the cudaStream_t from a cuvsResources_t t
+ * @brief Get the cudaStream_t from a cuvsResources_t
  *
  * @param[in] res cuvsResources_t opaque C handle
  * @param[out] stream cudaStream_t stream to queue CUDA kernels
@@ -100,6 +118,15 @@ cuvsError_t cuvsStreamGet(cuvsResources_t res, cudaStream_t* stream);
  * @return cuvsError_t
  */
 cuvsError_t cuvsStreamSync(cuvsResources_t res);
+
+/**
+ * @brief Get the id of the device associated with this cuvsResources_t
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @param[out] device_id int the id of the device associated with res
+ * @return cuvsError_t
+ */
+cuvsError_t cuvsDeviceIdGet(cuvsResources_t res, int* device_id);
 /** @} */
 
 /**
@@ -176,6 +203,34 @@ cuvsError_t cuvsRMMHostFree(void* ptr, size_t bytes);
  */
 cuvsError_t cuvsVersionGet(uint16_t* major, uint16_t* minor, uint16_t* patch);
 
+/**
+ * @brief Copy a matrix
+ *
+ * This function copies a matrix from dst to src. This lets you copy a matrix
+ * from device memory to host memory (or vice versa), while accounting for
+ * differences in strides.
+ *
+ * Both src and dst must have the same shape and dtype, but can have different
+ * strides and device type. The memory for the output dst tensor must already be
+ * allocated and the tensor initialized.
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @param[in] src Pointer to DLManagedTensor to copy
+ * @param[out] dst Pointer to DLManagedTensor to receive copy of data
+ */
+cuvsError_t cuvsMatrixCopy(cuvsResources_t res, DLManagedTensor* src, DLManagedTensor* dst);
+
+/**
+ * @brief Slices rows from a matrix
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @param[in] src Pointer to DLManagedTensor to copy
+ * @param[in] start First row index to include in the output
+ * @param[in] end Last row index to include in the output
+ * @param[out] dst Pointer to DLManagedTensor to receive slice from matrix
+ */
+cuvsError_t cuvsMatrixSliceRows(
+  cuvsResources_t res, DLManagedTensor* src, int64_t start, int64_t end, DLManagedTensor* dst);
 /** @} */
 
 #ifdef __cplusplus

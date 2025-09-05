@@ -23,15 +23,16 @@ import java.util.Objects;
  * {@link TieredIndex} encapsulates a Tiered index, along with methods to
  * interact with it.
  */
-public interface TieredIndex {
+public interface TieredIndex extends AutoCloseable {
 
   /**
    * Destroys the underlying native TieredIndex object and releases associated
    * resources.
    *
-   * @throws Throwable if an error occurs during index destruction
+   * @throws Exception if an error occurs during index destruction
    */
-  void destroyIndex() throws Throwable;
+  @Override
+  void close() throws Exception;
 
   /**
    * Searches the index with the specified query and search parameters.
@@ -104,10 +105,10 @@ public interface TieredIndex {
     /**
      * Sets the dataset for building the TieredIndex.
      *
-     * @param dataset A {@link Dataset} instance containing the vectors
+     * @param dataset A {@link CuVSMatrix} instance containing the vectors
      * @return This Builder instance for method chaining
      */
-    Builder withDataset(Dataset dataset);
+    Builder withDataset(CuVSMatrix dataset);
 
     /**
      * Registers TieredIndex parameters with this Builder.
@@ -165,11 +166,11 @@ public interface TieredIndex {
     /**
      * Sets the dataset to add to the existing index.
      *
-     * @param dataset A {@link Dataset} instance containing the new vectors to
+     * @param dataset A {@link CuVSMatrix} instance containing the new vectors to
      *                add
      * @return This ExtendBuilder instance for method chaining
      */
-    ExtendBuilder withDataset(Dataset dataset);
+    ExtendBuilder withDataset(CuVSMatrix dataset);
 
     /**
      * Executes the extend operation, adding the specified data to the index.

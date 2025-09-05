@@ -28,13 +28,14 @@ import java.util.Objects;
  *
  * @since 25.02
  */
-public interface BruteForceIndex {
+public interface BruteForceIndex extends AutoCloseable {
 
   /**
    * Invokes the native destroy_brute_force_index function to de-allocate
    * BRUTEFORCE index
    */
-  void destroyIndex() throws Throwable;
+  @Override
+  void close() throws Exception;
 
   /**
    * Invokes the native search_brute_force_index via the Panama API for searching
@@ -111,10 +112,10 @@ public interface BruteForceIndex {
     /**
      * Sets the dataset for building the {@link BruteForceIndex}.
      *
-     * @param dataset a {@link Dataset} object containing the vectors
+     * @param dataset a {@link CuVSMatrix} object containing the vectors
      * @return an instance of this Builder
      */
-    Builder withDataset(Dataset dataset);
+    Builder withDataset(CuVSMatrix dataset);
 
     /**
      * Builds and returns an instance of {@link BruteForceIndex}.
