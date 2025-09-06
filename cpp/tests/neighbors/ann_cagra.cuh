@@ -1155,8 +1155,8 @@ inline std::vector<AnnCagraInputs> generate_inputs()
     {100},
     {1000},
     {1, 8, 16},
-    {16},          // k
-    {32, 47, 64},  // degree
+    {16},              // k
+    {32, 47, 53, 64},  // degree
     {graph_build_algo::NN_DESCENT,
      graph_build_algo::ITERATIVE_CAGRA_SEARCH},  // build algo. ITERATIVE_CAGRA_SEARCH is needed to
                                                  // test BitwiseHamming
@@ -1421,7 +1421,7 @@ inline std::vector<AnnCagraInputs> generate_addnode_inputs()
                                                    {1000},
                                                    {1, 8, 17, 64, 128, 137, 512, 1024},  // dim
                                                    {16},                                 // k
-                                                   {32, 47, 64},                         // degree
+                                                   {32, 47, 53, 64},                     // degree
                                                    {graph_build_algo::ITERATIVE_CAGRA_SEARCH},
                                                    {search_algo::AUTO},
                                                    {10},
@@ -1493,8 +1493,8 @@ inline std::vector<AnnCagraInputs> generate_filtering_inputs()
     {100},
     {1000},
     {1, 8, 17, 102},
-    {16},          // k
-    {32, 47, 64},  // degree
+    {16},              // k
+    {32, 47, 53, 64},  // degree
     {graph_build_algo::NN_DESCENT},
     {search_algo::SINGLE_CTA, search_algo::MULTI_CTA, search_algo::MULTI_KERNEL},
     {0},  // query size
