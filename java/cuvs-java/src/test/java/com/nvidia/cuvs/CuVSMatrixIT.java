@@ -47,38 +47,6 @@ public class CuVSMatrixIT extends CuVSTestCase {
     {0, 4, 2}
   };
 
-  private int[][] createIntMatrix() {
-    int rows = randomIntBetween(1, 32);
-    int cols = randomIntBetween(1, 100);
-
-    int[][] result = new int[rows][cols];
-
-    for (int r = 0; r < rows; ++r) {
-      for (int c = 0; c < cols; ++c) {
-        result[r][c] = randomInt();
-      }
-    }
-    return result;
-  }
-
-  private float[][] createFloatMatrix() {
-    int rows = randomIntBetween(1, 32);
-    int cols = randomIntBetween(1, 100);
-
-    return createFloatMatrix(rows, cols);
-  }
-
-  private float[][] createFloatMatrix(int rows, int cols) {
-    float[][] result = new float[rows][cols];
-
-    for (int r = 0; r < rows; ++r) {
-      for (int c = 0; c < cols; ++c) {
-        result[r][c] = randomFloat();
-      }
-    }
-    return result;
-  }
-
   private void testByteDatasetRowGetAccess(CuVSMatrix dataset) {
     for (int n = 0; n < dataset.size(); ++n) {
       var row = dataset.getRow(n);
