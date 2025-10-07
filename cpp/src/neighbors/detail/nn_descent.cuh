@@ -21,7 +21,6 @@
 #include "cuvs/distance/distance.h"
 #include "nn_descent_gnnd.hpp"
 
-#include <cuda_runtime_api.h>
 #include <cuvs/distance/distance.hpp>
 #include <cuvs/neighbors/nn_descent.hpp>
 
